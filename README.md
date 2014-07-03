@@ -35,4 +35,18 @@ vbox
 The only supported option is -v (for verbose) which will show UUIDs for VMs
 and Snapshots.
 
-TODO: more to come
+And example run shows this:
+
+```
+% vbox
+
+===============================================================================
+ 1 - bsd10
+
+ * - running
+
+action [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>,
+        Revert <n>, SNapshot <n>, DESTROY <n>]:
+(or 'q' to quit):
+```
+
