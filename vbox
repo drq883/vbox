@@ -242,6 +242,7 @@ sub listSnaps($) {
          }
          $snap++;
       }
+      print "\n * - active snapshot\n";
    }
 }
 
