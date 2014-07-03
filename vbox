@@ -1,0 +1,498 @@
+#!/usr/bin/perl
+
+use Getopt::Long;
+$verbose = 0;
+GetOptions(
+   "verbose" => \$verbose,
+);
+
+# simpler interface to VBoxManage
+#
+# it will allow you to list, start, stop, and create snapshots
+# of vms defined to VirtualBox
+
+$hline = "
+===============================================================================
+";
+$bin = "/usr/bin/VBoxManage";
+
+%vindex = %vuuid = %vname = %vrunning = ();
+%sindex = %suuid = %sname = ();
+
+# just loop asking what to do
+while (true) {
+   print $hline;
+   listVMS();
+   exit 0 if ($ARGV[0] && $ARGV[0] =~ /list/i);
+   print "\naction [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>,\n";
+   print   "        Revert <n>, SNapshot <n>, DESTROY <n>]:\n";
+   print "(or 'q' to quit): ";
+   chomp($reply = <STDIN>);
+   print "\n";
+
+   # quit?
+   if ($reply =~ /^q/i) {
+      last;
+   }
+
+   # list command
+   elsif ($reply =~ /^l/i) {
+      next;
+   }
+
+   # start command
+   elsif ($reply =~ /^sta/i) {
+      startVM($reply, "");
+   }
+
+   # headless command
+   elsif ($reply =~ /^h/i) {
+      startVM($reply, "--type headless");
+   }
+
+   # stop command
+   elsif ($reply =~ /^sto/i) {
+      controlVM($reply, "acpipowerbutton");
+   }
+
+   # poweroff command
+   elsif ($reply =~ /^p/i) {
+      controlVM($reply, "poweroff");
+   }
+
+   # revert command (stop/revert/start if started)
+   elsif ($reply =~ /^r/i) {
+      my ($command, $vm) = split(/\s+/, $reply);
+      my $startit = 0;
+      chomp(my $running = `$bin list runningvms`);
+      if ($running =~ /$vindex{$vm}{UUID}/) {
+         controlVM("poweroff $vm", "poweroff");
+         $startit = 1;
+      }
+      system("$bin snapshot $vindex{$vm}{UUID} restorecurrent\n");
+      if ($startit) {
+         startVM("start $vm", "");
+      }
+   }
+
+   # snapshot command
+   elsif ($reply =~ /^(sn|cd)/i) {
+      snapshotVM($reply);
+   }
+
+   # destroy command
+   elsif ($reply =~ /^destroy/i) {
+      destroyVM($reply);
+   }
+
+   # snapshot command
+   elsif ($reply =~ /^(sn|cd)/i) {
+      snapshotVM($reply);
+   }
+
+   # unknown command
+   else {
+      print "Unrecognized command '$reply'\n";
+   }
+}
+
+exit 0;
+
+# get vms and create indeces
+#
+# output for each vm looks like this:
+#
+#  "FreeBSD 6.3" {fc4d64b7-f516-48ec-b0cf-5a72aca43724}
+#
+sub populateVMS() {
+   chomp(@vms = `$bin list vms`);
+   chomp(@run = `$bin list runningvms`);
+   $mach = 1;
+   # reset all hashes
+   %vindex = %vuuid = %vname = %vrunning = ();
+   foreach $v (@vms) {
+      $v =~ m/"(.+)" {(.+)}/;
+      $vindex{$mach}{NAME} = $1;
+      $vindex{$mach}{UUID} = $2;
+      $vuuid{$2}{INDEX}    = $mach;
+      $vuuid{$2}{NAME}     = $1;
+      $vname{$1}{INDEX}    = $mach;
+      $vname{$1}{UUID}     = $2;
+      $mach++;
+   }
+   foreach $v (@run) {
+      $v =~ m/"(.+)" {(.+)}/;
+      $vrunning{$2} = 1;
+   }
+}
+
+# print list of all VMs on the term
+sub listVMS() {
+   # re-populate hashes each time we're called to take into account
+   # that a host may have been started or stopped between lists
+   populateVMS();
+   foreach $key (sort {$a <=> $b} keys %vindex) {
+      $stat = "";
+      if (defined $vrunning{$vindex{$key}{UUID}}) {
+         $stat = "*";
+      }
+      else {
+         $stat = "";
+      }
+      if ($verbose) {
+         printf "%2d - %-25s {%s} %s\n",
+            $key, $vindex{$key}{NAME}, $vindex{$key}{UUID}, $stat;
+      }
+      else {
+         printf "%2d - %s %s\n",
+            $key, $vindex{$key}{NAME}, $stat;
+      }
+   }
+   print "\n * - running\n";
+   return;
+}
+
+# get snapshots for a VM and create index
+#
+# output for each vm looks like this:
+#
+#    Name: No OS (UUID: 08e1be32-e22b-4b68-90ee-f740bb7371a5)
+#     Name: 8.2-RELEASE (UUID: 6bc414d8-c1c5-4fbd-8f04-d7eb7c935fb3)
+#        Name: sasdrq added (UUID: 2e6a9d6f-4078-4b99-8926-95c189536dc4)
+#           Name: VM in a VM (UUID: 6e03d8f6-9759-4a0f-a756-2d913090e1ec)
+#           Name: created CVS/ in /usr/local/src (UUID: 3d8897b5-767c-4205-b649-8ca065c69e36)
+#              Name: packages added (UUID: 099cbd03-7b58-468c-bf11-9d74e30efbbb)
+#                 Name: linux enabled (UUID: fa98510e-3c00-4db7-96cf-a613eaa7705c)
+#        Name: hostname: bb01lgn95 (UUID: 845cedcb-9ebb-46c0-92a2-23b5faa4a263)
+#           Name: ./bbsetup (UUID: 41bf07b1-73d4-4111-90ff-4eb8a02124ec) *
+#
+# new format:
+#
+# SnapshotName="No OS"
+# SnapshotUUID="a584b0f5-d145-4895-8247-6888a07bf3da"
+# SnapshotDescription="VM before any installation"
+# SnapshotName-1="Changed type,network,video memory"
+# ...
+# SnapshotName-1-1-1-1-1-1="task defined, ready to change name"
+# SnapshotUUID-1-1-1-1-1-1="7da38a69-5344-4cad-b312-e0b22a4f53ad"
+# SnapshotDescription-1-1-1-1-1-1="/Users/root/runme.ps1 will
+# break apart SystemProductName and save files.
+# set hostname
+# enable network
+# touch done file
+# reboot.
+#
+# let's change hostname to xxxxx and try"
+# SnapshotName-1-1-1-1-1-1-1="This should be it"
+# SnapshotUUID-1-1-1-1-1-1-1="d1f637d3-ad68-488e-aadd-e1dfdecfec03"
+# ...
+#
+#
+# active snapshot has the '*'
+#
+sub listSnaps($) {
+   my $index = $_[0];
+   chomp(@output = `$bin snapshot $vindex{$index}{UUID} list --machinereadable 2>/dev/null`);
+   @snapshots = grep(/^Snapshot(Name|UUID)/, @output);
+   ($current) = grep(/^CurrentSnapshotNode=/, @output);
+   (undef, $currentNode) = split('="', $current);
+   chop($currentNode);
+   my $snap = 1;
+   # reset hashes
+   %sindex = %suuid = %sname = ();
+   if (scalar @snapshots == 0) {
+      printf "There are currently no snapshots available\n";
+   }
+   else {
+      $name = undef;
+      # Snapshots look like this as of 4.2.12:
+      #
+      # 'SnapshotName="InitialCreate"'
+      # 'SnapshotUUID="2d523cd4-a31f-48d2-9b3a-a98ce8a7cd8c"'
+      # 'SnapshotName-1="added user toor"'
+      # 'SnapshotUUID-1="f1b7e67f-b562-46ef-b8dc-d64013abbba6"'
+      foreach $s (@snapshots) {
+         ($varAndSuffix, $val) = split('="', $s);
+         ($var, $branch) = split('-', $varAndSuffix, 2);
+         chop($val);
+         if ($var eq "SnapshotName") {
+            $snapshotName = $varAndSuffix;
+            $name = $val;
+            next;
+         }
+         # if it's not Name, it has to be UUID
+         $uuid = $val;
+         ($dashes = $varAndSuffix) =~ s/[^-]//g;
+         $indent = ' ' x (length($dashes) * 2);
+         $sindex{$snap}{NAME} = $name;
+         $sindex{$snap}{UUID} = $uuid;
+         $suuid{$uuid}{INDEX}    = $snap;
+         $suuid{$uuid}{NAME}     = $name;
+         $sname{$name}{INDEX}    = $snap;
+         $sname{$name}{UUID}     = $uuid;
+         $currentFlag = '';
+         if ($snapshotName eq $currentNode) {
+            $currentFlag = '*';
+         }
+         if ($verbose) {
+            printf "%2d %s %s %s %s %s\n", $snap, $indent, $name, $uuid, $currentFlag;
+         }
+         else {
+            printf "%2d %s %s %s %s %s\n", $snap, $indent, $name, $currentFlag;
+         }
+         $snap++;
+      }
+   }
+}
+
+# given a number, name, or uuid, return the index from
+# the vindex hash or undef
+sub findIndex($) {
+   my ($token) = @_;
+   # is it an index?
+   if (defined $vindex{$token}) {
+      return $token;
+   }
+   # uuid?
+   if (defined $vuuid{$token}) {
+      return($vuuid{$token}{INDEX});
+   }
+   # name?
+   if (defined $vname{$token}) {
+      return($vname{$token}{INDEX});
+   }
+   return undef;
+}
+
+# prompt for which VM to process
+# used by controlVM, startVM, etc.
+# RETURNS: index of VM (or null)
+sub promptForVM() {
+   my $whichone, $index;
+   # just loop until we get valid input
+   while (! $whichone) {
+      listVMS();
+      print "\nWhich one to process? Choose a number (or 'q' to quit): ";
+      chomp($whichone = <STDIN>);
+      if ($whichone =~ /^q/i) {
+         return undef;
+      }
+      if (! ($index = findIndex($whichone))) {
+         print "\nInvalid input '$whichone', try again\n";
+         next;
+      }
+   }
+   return $index;
+}
+
+# given a number, name, or uuid, return the index from
+# the sindex hash or undef
+sub findIndexSnap($) {
+   my ($token) = @_;
+   # is it an index?
+   if (defined $sindex{$token}) {
+      return $token;
+   }
+   # uuid?
+   if (defined $suuid{$token}) {
+      return($suuid{$token}{INDEX});
+   }
+   # name?
+   if (defined $sname{$token}) {
+      return($sname{$token}{INDEX});
+   }
+   return undef;
+}
+
+# prompt for which Snap to process
+# used by snapshotVM
+# RETURNS: index of Snapshot (or null)
+sub promptForSnap($) {
+   my $vm = $_[0];
+   my $whichone, $index;
+   # just loop until we get valid input
+   while (! $whichone) {
+      listSnaps($vm);
+      print "\nWhich one to process? Choose a number (or 'q' to quit): ";
+      chomp($whichone = <STDIN>);
+      if ($whichone =~ /^q/i) {
+         return undef;
+      }
+      if (! ($index = findIndexSnap($whichone))) {
+         print "\nInvalid input '$whichone', try again\n";
+         next;
+      }
+   }
+   return $index;
+}
+
+# start a VM
+sub startVM($$) {
+   my ($command, $whichone) = split(/\s+/, $_[0], 2);
+   my $option = $_[1];
+   my $index;
+   while (! $whichone) {
+      $whichone = promptForVM();
+   }
+   $index = findIndex($whichone);
+   printf "\uStarting VM %d\n", $index;
+   system("$bin startvm $option $vindex{$index}{UUID}\n");
+   sleep(3);
+}
+
+# control a VM
+sub controlVM($$) {
+   my ($command, $whichone) = split(/\s+/, $_[0], 2);
+   my $cntlCmd = $_[1];
+   my $index;
+   while (! $whichone) {
+      $whichone = promptForVM();
+   }
+   $index = findIndex($whichone);
+   printf "\usend $cntlCmd to VM %d\n", $index;
+   system("$bin controlvm $vindex{$index}{UUID} $cntlCmd\n");
+   sleep(1);
+}
+
+# VBoxManage snapshot <uuid>|<name>
+#                        take <name> [--description <desc>] [--pause] |
+#                        delete <uuid>|<name> |
+#                        restore <uuid>|<name> |
+#                        restorecurrent |
+#                        edit <uuid>|<name>|--current
+#                           [--name <name>]
+#                           [--description <desc>] |
+#                        list [--details|--machinereadable]
+#                        showvminfo <uuid>|<name>
+
+# manage a VM (snapshots, maybe other stuff)
+sub snapshotVM($$) {
+   my ($command, $whichone) = split(/\s+/, $_[0], 2);
+   my $vm;
+   my $action;
+   while (! $whichone) {
+      $whichone = promptForVM();
+   }
+   $vm = findIndex($whichone);
+   while (true) {
+      listSnaps($vm);
+      print "\naction [STArt, STOp, RESTArt, List, REVert, DELete <n>, RESTOre <n>, Take <name>]\n";
+      print "(or 'q' to return, 'Q' to exit): ";
+      chomp($reply = <STDIN>);
+      print "\n";
+
+      # quit?
+      if ($reply =~ /^q/i) {
+         if ($reply =~ /^Q/) {
+            exit 0;
+         }
+         else {
+            last;
+         }
+      }
+
+      # start command
+      elsif ($reply =~ /^sta/i) {
+         startVM("start $vm", "");
+      }
+
+      # stop command
+      # we know that the UUID is so we don't need any more information
+      elsif ($reply =~ /^sto/i) {
+         controlVM("stop $vm", "acpipowerbutton");
+      }
+
+      # list command
+      elsif ($reply =~ /^l/i) {
+         next;
+      }
+
+      # delete command
+      elsif ($reply =~ /^del/i) {
+         my ($command, $whichone) = split(/\s+/, $reply, 2);
+         while (! $whichone) {
+            $whichone = promptForSnap($vm);
+         }
+         $snapshot = findIndexSnap($whichone);
+         if (defined $sindex{$snapshot}) {
+            system("$bin snapshot $vindex{$vm}{UUID} delete $sindex{$snapshot}{UUID}\n");
+            sleep(1);
+         }
+         else {
+            print "\nbad index given\n";
+         }
+      }
+
+      # take command
+      elsif ($reply =~ /^t/i) {
+         my ($command, $name) = split(/\s+/, $reply, 2);
+         if (! $name) {
+            $name = "snapshot.$$";
+            print "default name of $name used\n";
+         }
+         system("$bin snapshot $vindex{$vm}{UUID} take '$name'\n");
+         sleep(1);
+      }
+
+      # restore command
+      elsif ($reply =~ /^resto/i) {
+         my ($command, $whichone) = split(/\s+/, $reply, 2);
+         while (! $whichone) {
+            $whichone = promptForSnap($vm);
+         }
+         $snapshot = findIndexSnap($whichone);
+         if (defined $sindex{$snapshot}) {
+            system("$bin snapshot $vindex{$vm}{UUID} restore $sindex{$snapshot}{UUID}\n");
+            sleep(1);
+         }
+         else {
+            print "\nbad index given\n";
+         }
+      }
+
+      # revert command, no other input required here
+      #
+      # poweroff machine if down (and flag as running)
+      # revert to current snapshot
+      # restart machine if it was running
+      elsif ($reply =~ /^rev/i) {
+         my $startit = 0;
+         chomp(my $running = `$bin list runningvms`);
+         if ($running =~ /$vindex{$vm}{UUID}/) {
+            controlVM("poweroff $vm", "poweroff");
+            $startit = 1;
+         }
+         system("$bin snapshot $vindex{$vm}{UUID} restorecurrent\n");
+         if ($startit) {
+            startVM("start $vm", "");
+         }
+         sleep(1);
+      }
+
+      elsif ($reply =~ /^resta/i) {
+         controlVM("poweroff $vm", "poweroff");
+         until (`$bin showvminfo $vindex{$vm}{UUID} | grep State 2>/dev/null` =~ /powered off/) {
+            sleep(2);
+         }
+         startVM("start $vm", "");
+      }
+
+      else {
+         print "Unrecognized command '$reply'\n";
+      }
+   }
+}
+
+# destroy a VM
+sub destroyVM($$) {
+   my ($command, $whichone) = split(/\s+/, $_[0], 2);
+   my $option = $_[1];
+   my $index;
+   while (! $whichone) {
+      $whichone = promptForVM();
+   }
+   $index = findIndex($whichone);
+   printf "\uDestroying VM %s\n", $vindex{$index}{NAME};
+   system("$bin unregistervm $vindex{$index}{UUID} --delete\n");
+   sleep(3);
+}
