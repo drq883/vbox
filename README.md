@@ -58,7 +58,7 @@ The actions available on this screen are:
  + Poweroff <n>  - power off the specified VM
  + Revert <n>    - revert the specified to the last saved snapshot (may poweroff and reboot)
  + SNapahost <n> - change to the snapshot display for specified VM
- + Destroy <n>   - destory specified VM and removed any directory still there
+ + DESTROY <n>   - destory specified VM and removed any directory still there
  + quit          - quit vbox
 
 The snapshot screen looks like this:
