@@ -56,7 +56,7 @@ The actions available on this screen are:
  + STOp <n>      - stop the specified VM by sending the ACPI signal
  + Headless <n>  - start the specified VM headless
  + Poweroff <n>  - power off the specified VM
- + Revert <n>    - revert the specified to the last saved snapshot (may poweroff and reboot)
+ + Revert <n>    - revert the specified to the last saved snapshot (will reboot if running)
  + SNapahost <n> - change to the snapshot display for specified VM
  + DESTROY <n>   - destory specified VM and removed any directory still there
  + quit          - quit vbox
@@ -82,9 +82,9 @@ The actions available on this screen are:
  + STOp        - stop the current VM by sending the ACPI signal
  + RESTart     - restart the current VM (poweroff and start)
  + List        - this command just lists the snapshots again
- + Revert      - revert the current VM to the last saved snapshot (may poweroff and start)
+ + Revert      - revert the current VM to the last saved snapshot (will reboot if running)
  + DELete <n>  - delete the specified snapshot
- + RESTOre <n> - restore the specified snapshot (host should be down)
+ + RESTOre <n> - restore the specified snapshot (host must be down)
  + Take <name> - take a snapshot of the current VM and name it <name>
  + quit        - return to the VM display
  + Quit        - quit vbox altogether
