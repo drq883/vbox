@@ -540,9 +540,9 @@ Where:
 Available actions from command line:
 
    STArt <vm>    - start specified vm
-   STOp  <vm>    - stop specified vm
+   STOp  <vm>    - send ACPI shutdown signal to  specified vm
    Headless <vm> - start specified vm headless
-   Poweroff <vm> - send the ACPI shutdown signal to specified vm
+   Poweroff <vm> - power off specified vm
    Revert <vm>   - revert specified vm to last saved snapshot
                    (will reboot VM if running)
    DESTROY <vm>  - delete the specified vm and remove vm directory
