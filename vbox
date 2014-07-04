@@ -1,8 +1,13 @@
 #!/usr/bin/perl
 
 use Getopt::Long;
+use File::Basename;
+
+$ME = basename($0);
+
 $verbose = 0;
 GetOptions(
+   "help|\?" => sub { usage(); exit 0; },
    "verbose" => \$verbose,
 );
 
@@ -20,15 +25,28 @@ $bin = "/usr/bin/VBoxManage";
 %sindex = %suuid = %sname = ();
 
 # just loop asking what to do
-while (true) {
-   print $hline;
-   listVMS();
-   exit 0 if ($ARGV[0] && $ARGV[0] =~ /list/i);
-   print "\naction [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>,\n";
-   print   "        Revert <n>, SNapshot <n>, DESTROY <n>]:\n";
-   print "(or 'q' to quit): ";
-   chomp($reply = <STDIN>);
-   print "\n";
+$loop = 1;
+while ($loop) {
+   # if we have a command line argument, populate the VMs only since
+   # we don't care to display. We will ignore a list as this point since we
+   # do want to list the VMs in that case.
+   # we will set $reply to a join of the args and let the current logic take
+   # care of things. We will set a flag so that the loop ends.
+   if ( $ARGV[0] && $ARGV[0] !~ /^l/i) {
+      populateVMs();
+      $reply = join(' ', @ARGV);
+      $loop = 0;
+   }
+   else {
+      print $hline;
+      listVMs();
+      exit 0 if ($ARGV[0] && $ARGV[0] =~ /^l/i);
+      print "\naction [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>,\n";
+      print   "        Revert <n>, SNapshot <n>, DESTROY <n>]:\n";
+      print "(or 'q' to quit): ";
+      chomp($reply = <STDIN>);
+      print "\n";
+   }
 
    # quit?
    if ($reply =~ /^q/i) {
@@ -104,7 +122,7 @@ exit 0;
 #
 #  "FreeBSD 6.3" {fc4d64b7-f516-48ec-b0cf-5a72aca43724}
 #
-sub populateVMS() {
+sub populateVMs() {
    chomp(@vms = `$bin list vms`);
    chomp(@run = `$bin list runningvms`);
    $mach = 1;
@@ -127,10 +145,10 @@ sub populateVMS() {
 }
 
 # print list of all VMs on the term
-sub listVMS() {
+sub listVMs() {
    # re-populate hashes each time we're called to take into account
    # that a host may have been started or stopped between lists
-   populateVMS();
+   populateVMs();
    foreach $key (sort {$a <=> $b} keys %vindex) {
       $stat = "";
       if (defined $vrunning{$vindex{$key}{UUID}}) {
@@ -272,7 +290,7 @@ sub promptForVM() {
    my $whichone, $index;
    # just loop until we get valid input
    while (! $whichone) {
-      listVMS();
+      listVMs();
       print "\nWhich one to process? Choose a number (or 'q' to quit): ";
       chomp($whichone = <STDIN>);
       if ($whichone =~ /^q/i) {
@@ -334,6 +352,7 @@ sub startVM($$) {
    my $index;
    while (! $whichone) {
       $whichone = promptForVM();
+      return if (! $whichone);
    }
    $index = findIndex($whichone);
    printf "\uStarting VM %d\n", $index;
@@ -348,6 +367,7 @@ sub controlVM($$) {
    my $index;
    while (! $whichone) {
       $whichone = promptForVM();
+      return if (! $whichone);
    }
    $index = findIndex($whichone);
    printf "\usend $cntlCmd to VM %d\n", $index;
@@ -373,6 +393,7 @@ sub snapshotVM($$) {
    my $action;
    while (! $whichone) {
       $whichone = promptForVM();
+      return if (! $whichone);
    }
    $vm = findIndex($whichone);
    while (true) {
@@ -491,9 +512,40 @@ sub destroyVM($$) {
    my $index;
    while (! $whichone) {
       $whichone = promptForVM();
+      return if (! $whichone);
    }
    $index = findIndex($whichone);
    printf "\uDestroying VM %s\n", $vindex{$index}{NAME};
    system("$bin unregistervm $vindex{$index}{UUID} --delete\n");
    sleep(3);
+}
+
+sub usage() {
+   print <<EOU;
+
+$ME - command-line interface to control VirtualBox VMs
+
+Syntax:
+
+   $ME [-h|-?] [-v] [<action> <vm>]
+
+Where:
+
+   -h or -?   - display usage information
+   -v         - display UUID information for VMs and snapshots
+   <action>   - perform action on <vm> directly without prompting for
+                an action.
+   <vm>       - describes to <action> the <vm> to control
+
+Available actions from command line:
+
+   STArt <vm>    - start specified vm
+   STOp  <vm>    - stop specified vm
+   Headless <vm> - start specified vm headless
+   Poweroff <vm> - send the ACPI shutdown signal to specified vm
+   Revert <vm>   - revert specified vm to last saved snapshot
+                   (will reboot VM if running)
+   DESTROY <vm>  - delete the specified vm and remove vm directory
+
+EOU
 }

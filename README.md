@@ -92,3 +92,8 @@ The actions available on this screen are:
 
 ##Notes:
 + actions miminum abbreviations are shown in uppercased letters
++ actions for a VM can be given on the command line for quicker action for example:
+```
+vbox start mytestvm
+```
+
