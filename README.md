@@ -1,6 +1,6 @@
 #vbox (Mac only)
 
-##What is syncmyhome?
+##What is vbox?
 
 vbox is a perl script that is a VirtualBox command-line interactive
 interface. I'm a long-time developer and do most everything from an xterm
