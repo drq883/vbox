@@ -80,16 +80,29 @@ while ($loop) {
 
    # revert command (stop/revert/start if started)
    elsif ($reply =~ /^r/i) {
-      my ($command, $vm) = split(/\s+/, $reply);
-      my $startit = 0;
-      chomp(my $running = `$bin list runningvms`);
-      if ($running =~ /$vindex{$vm}{UUID}/) {
-         controlVM("poweroff $vm", "poweroff");
-         $startit = 1;
-      }
-      system("$bin snapshot $vindex{$vm}{UUID} restorecurrent\n");
-      if ($startit) {
-         startVM("start $vm", "");
+      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my $startit;
+      my $in;
+      my $headless - undef;
+      foreach $vm (split(/[,\s]+/, $VMs)) {
+        $in = findIndex($vm);
+        $startit = 0;
+        chomp(my $running = `$bin list runningvms`);
+        if ($running =~ /$vindex{$in}{UUID}/) {
+           # save off if we need to start headless or not
+           chomp($headless = `$bin showvminfo $vindex{$in}{UUID} | grep 'Session type:' | grep headless`);
+           controlVM("poweroff $vm", "poweroff");
+           $startit = 1;
+        }
+        system("$bin snapshot $vindex{$in}{UUID} restorecurrent\n");
+        if ($startit) {
+           if ($headless) {
+             startVM("start $vm", "--type headless");
+           }
+           else {
+             startVM("start $vm", "");
+           }
+        }
       }
    }
 
