@@ -15,8 +15,12 @@ have a Makefile to do that for you since the commands are just:
 
  + mkdir -p ~/bin
  + cp vbox ~/bin
+ 
+ I actually did this:
 
-And only the 2nd is probably necessary as most users have a ~/bin directory.
+ + ln -s ~/git/vbox/vbox ~/bin
+
+Which allows it to follow the updates without having to re-copy. I just "git pull" from the repo and I'm done.
 
 
 ##Requirements:
