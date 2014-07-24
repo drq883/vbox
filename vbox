@@ -411,7 +411,8 @@ sub snapshotVM($$) {
    $vm = findIndex($whichone);
    while (true) {
       listSnaps($vm);
-      print "\naction [STArt, STOp, RESTArt, List, REVert, DELete <n>, RESTOre <n>, Take <name>]\n";
+      print "\naction [STArt, STOp, Poweroff, RESTArt, List, REVert, DELete <n>,\n";
+      print "        RESTOre <n>, Take <name>]\n";
       print "(or 'q' to return, 'Q' to exit): ";
       chomp($reply = <STDIN>);
       print "\n";
@@ -435,6 +436,11 @@ sub snapshotVM($$) {
       # we know that the UUID is so we don't need any more information
       elsif ($reply =~ /^sto/i) {
          controlVM("stop $vm", "acpipowerbutton");
+      }
+
+      # poweroff command
+      elsif ($reply =~ /^p/i) {
+         controlVM("stop $vm", "poweroff");
       }
 
       # list command
