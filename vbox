@@ -42,7 +42,7 @@ while ($loop) {
       listVMs();
       exit 0 if ($ARGV[0] && $ARGV[0] =~ /^l/i);
       print "\naction [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>,\n";
-      print   "        Revert <n>, SNapshot <n>, DESTROY <n>]:\n";
+      print   "        Revert <n[,n]>, Take <n[,n]> <name>, SNapshot <n>, DESTROY <n>]:\n";
       print "(or 'q' to quit): ";
       chomp($reply = <STDIN>);
       print "\n";
@@ -84,10 +84,10 @@ while ($loop) {
       my $startit;
       my $in;
       my $headless - undef;
+      chomp(my $running = `$bin list runningvms`);
       foreach $vm (split(/[,\s]+/, $VMs)) {
         $in = findIndex($vm);
         $startit = 0;
-        chomp(my $running = `$bin list runningvms`);
         if ($running =~ /$vindex{$in}{UUID}/) {
            # save off if we need to start headless or not
            chomp($headless = `$bin showvminfo $vindex{$in}{UUID} | grep 'Session type:' | grep headless`);
@@ -106,6 +106,21 @@ while ($loop) {
       }
    }
 
+   # take a snapshot of one or more VMs
+   elsif ($reply =~ /^t/i) {
+      my ($command, $VMs, $name) = split(/\s+/, $reply, 3);
+      my $in;
+      chomp(my $running = `$bin list runningvms`);
+      foreach $vm (split(/,+/, $VMs)) {
+        $in = findIndex($vm);
+        $live = "";
+        if ($running =~ /$vindex{$in}{UUID}/) {
+           $live = "--live";
+        }
+        system("$bin snapshot $vindex{$in}{UUID} take \"$name\" $live\n");
+      }
+   }
+
    # snapshot command
    elsif ($reply =~ /^(sn|cd)/i) {
       snapshotVM($reply);
@@ -114,11 +129,6 @@ while ($loop) {
    # destroy command
    elsif ($reply =~ /^destroy/i) {
       destroyVM($reply);
-   }
-
-   # snapshot command
-   elsif ($reply =~ /^(sn|cd)/i) {
-      snapshotVM($reply);
    }
 
    # unknown command
