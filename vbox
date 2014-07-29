@@ -60,22 +60,34 @@ while ($loop) {
 
    # start command
    elsif ($reply =~ /^sta/i) {
-      startVM($reply, "");
+      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      foreach $vm (split(/,+/, $VMs)) {
+         startVM("start $vm", "");
+      }
    }
 
    # headless command
    elsif ($reply =~ /^h/i) {
-      startVM($reply, "--type headless");
+      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      foreach $vm (split(/,+/, $VMs)) {
+        startVM("headless $vm", "--type headless");
+      }
    }
 
    # stop command
    elsif ($reply =~ /^sto/i) {
-      controlVM($reply, "acpipowerbutton");
+      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      foreach $vm (split(/,+/, $VMs)) {
+        controlVM("stop $vm", "acpipowerbutton");
+      }
    }
 
    # poweroff command
    elsif ($reply =~ /^p/i) {
-      controlVM($reply, "poweroff");
+      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      foreach $vm (split(/,+/, $VMs)) {
+        controlVM("poweroff $vm", "poweroff");
+      }
    }
 
    # revert command (stop/revert/start if started)
