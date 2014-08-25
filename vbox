@@ -41,8 +41,8 @@ while ($loop) {
       print $hline;
       listVMs();
       exit 0 if ($ARGV[0] && $ARGV[0] =~ /^l/i);
-      print "\naction [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>,\n";
-      print   "        Revert <n[,n]>, Take <n[,n]> <name>, SNapshot <n>, DESTROY <n>]:\n";
+      print "\naction [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>, Revert <n[,n]>,\n";
+      print   "        Take <n[,n]> <name>, SNapshot <n>, SSh <n>, DESTROY <n>]:\n";
       print "(or 'q' to quit): ";
       chomp($reply = <STDIN>);
       print "\n";
@@ -136,6 +136,15 @@ while ($loop) {
    # snapshot command
    elsif ($reply =~ /^(sn|cd)/i) {
       snapshotVM($reply);
+   }
+
+   # ssh command
+   elsif ($reply =~ /^ss/i) {
+      my ($command, $vm, $args) = split(/\s+/, $reply, 3);
+      my $in = findIndex($vm);
+      print "-------- 8< ------ output from ssh ---------------------------------------------\n";
+      system("ssh $vindex{$in}{NAME} $args");
+      print "-------------------------------------------------------------------- >8 --------\n\n";
    }
 
    # destroy command
@@ -434,7 +443,7 @@ sub snapshotVM($$) {
    while (true) {
       listSnaps($vm);
       print "\naction [STArt, STOp, Poweroff, RESTArt, List, REVert, DELete <n>,\n";
-      print "        RESTOre <n>, Take <name>]\n";
+      print "        RESTOre <n>, SSh [command], Take <name>]\n";
       print "(or 'q' to return, 'Q' to exit): ";
       chomp($reply = <STDIN>);
       print "\n";
@@ -538,6 +547,13 @@ sub snapshotVM($$) {
             sleep(2);
          }
          startVM("start $vm", "");
+      }
+
+      elsif ($reply =~ /^ss/i) {
+         my ($command, $args) = split(/\s+/, $reply, 2);
+         print "-------- 8< ------ output from ssh ---------------------------------------------\n";
+         system("ssh $vindex{$vm}{NAME} $args");
+         print "-------------------------------------------------------------------- >8 --------\n\n";
       }
 
       else {
