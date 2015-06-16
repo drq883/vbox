@@ -260,6 +260,7 @@ sub listSnaps($) {
    (undef, $currentNode) = split('="', $current);
    chop($currentNode);
    my $snap = 1;
+   print "VM: $vindex{$index}{NAME}\n\n";
    # reset hashes
    %sindex = %suuid = %sname = ();
    if (scalar @snapshots == 0) {
