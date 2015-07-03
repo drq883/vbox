@@ -541,7 +541,7 @@ action [STArt, STOp, Headless, Poweroff, RESTArt, List, REVert,
          my $startit = 0;
          chomp(my $running = `$bin list runningvms`);
          if ($running =~ /$vindex{$vm}{UUID}/) {
-            chomp($headless = `$bin showvminfo $vindex{$in}{UUID} | grep 'Session type:' | grep headless`);
+            chomp($headless = `$bin showvminfo $vindex{$vm}{UUID} | grep 'Session type:' | grep headless`);
             controlVM("poweroff $vm", "poweroff");
             $startit = 1;
          }
