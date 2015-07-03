@@ -41,9 +41,11 @@ while ($loop) {
       print $hline;
       listVMs();
       exit 0 if ($ARGV[0] && $ARGV[0] =~ /^l/i);
-      print "\naction [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>, Revert <n[,n]>,\n";
-      print   "        Take <n[,n]> <name>, SNapshot <n>, SSh <n>, DESTROY <n>]:\n";
-      print "(or 'q' to quit): ";
+      $msg = "
+action [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>, Revert <n[,n]>,
+        Take <n[,n]> <name>, SNapshot <n>, SSh <n>, DESTROY <n>]:
+(or 'q' to quit): ";
+      print $msg;
       chomp($reply = <STDIN>);
       print "\n";
    }
@@ -443,9 +445,11 @@ sub snapshotVM($$) {
    $vm = findIndex($whichone);
    while (true) {
       listSnaps($vm);
-      print "\naction [STArt, STOp, Poweroff, RESTArt, List, REVert, DELete <n>,\n";
-      print "        RESTOre <n>, SSh [command], Take <name>]\n";
-      print "(or 'q' to return, 'Q' to exit): ";
+      $msg = "
+action [STArt, STOp, Headless, Poweroff, RESTArt, List, REVert,
+        DELete <n>, RESTOre <n>, SSh [command], Take <name>]
+(or 'q' to return, 'Q' to exit): ";
+      print "$msg";
       chomp($reply = <STDIN>);
       print "\n";
 
@@ -462,6 +466,11 @@ sub snapshotVM($$) {
       # start command
       elsif ($reply =~ /^sta/i) {
          startVM("start $vm", "");
+      }
+
+      # headless command
+      elsif ($reply =~ /^h/i) {
+         startVM("headless $vm", "--type headless");
       }
 
       # stop command
@@ -532,12 +541,18 @@ sub snapshotVM($$) {
          my $startit = 0;
          chomp(my $running = `$bin list runningvms`);
          if ($running =~ /$vindex{$vm}{UUID}/) {
+            chomp($headless = `$bin showvminfo $vindex{$in}{UUID} | grep 'Session type:' | grep headless`);
             controlVM("poweroff $vm", "poweroff");
             $startit = 1;
          }
          system("$bin snapshot $vindex{$vm}{UUID} restorecurrent\n");
          if ($startit) {
+           if ($headless) {
+             startVM("start $vm", "--type headless");
+           }
+           else {
             startVM("start $vm", "");
+           }
          }
          sleep(1);
       }
