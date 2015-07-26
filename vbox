@@ -11,6 +11,8 @@ GetOptions(
    "verbose" => \$verbose,
 );
 
+$ENV{'PATH'} = "/usr/local/bin:/usr/bin:$ENV{'PATH'}";
+
 # simpler interface to VBoxManage
 #
 # it will allow you to list, start, stop, and create snapshots
@@ -19,7 +21,7 @@ GetOptions(
 $hline = "
 ===============================================================================
 ";
-$bin = "/usr/bin/VBoxManage";
+$bin = "VBoxManage";
 
 %vindex = %vuuid = %vname = %vrunning = ();
 %sindex = %suuid = %sname = ();
