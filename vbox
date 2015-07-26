@@ -33,6 +33,7 @@ Your current PATH is:
 NOBIN
   exit 1;
 }
+printf "Using VBoxManage version: %s", `$bin -v`;
 
 %vindex = %vuuid = %vname = %vrunning = ();
 %sindex = %suuid = %sname = ();
