@@ -21,7 +21,18 @@ $ENV{'PATH'} = "/usr/local/bin:/usr/bin:$ENV{'PATH'}";
 $hline = "
 ===============================================================================
 ";
-$bin = "VBoxManage";
+chomp($bin = `which VBoxManage`);
+if (! -x "$bin") {
+  print <<NOBIN;
+
+Can't find VBoxManage binary.
+
+Your current PATH is:
+  $ENV{PATH}
+
+NOBIN
+  exit 1;
+}
 
 %vindex = %vuuid = %vname = %vrunning = ();
 %sindex = %suuid = %sname = ();
