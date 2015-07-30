@@ -38,6 +38,15 @@ printf "Using VBoxManage version: %s", `$bin -v`;
 %vindex = %vuuid = %vname = %vrunning = ();
 %sindex = %suuid = %sname = ();
 
+# commands supported by controlVM, the key is what the short command
+# is and the value is what the VBoxManage controlvm expects.
+%cntlCmd = (
+  off => 'poweroff',
+  stop => 'acpipowerbutton',
+  pause => 'pause',
+  resume => 'resume',
+);
+
 # just loop asking what to do
 $loop = 1;
 while ($loop) {
@@ -95,7 +104,7 @@ action [List, (STArt|STOp|Headless|PAuse|RESume|POweroff) <n>,
    elsif ($reply =~ /^sto/i) {
       my ($command, $VMs) = split(/\s+/, $reply, 2);
       foreach $vm (split(/,+/, $VMs)) {
-        controlVM("stop $vm", "acpipowerbutton");
+        controlVM("stop", $vm);
       }
    }
 
@@ -103,7 +112,7 @@ action [List, (STArt|STOp|Headless|PAuse|RESume|POweroff) <n>,
    elsif ($reply =~ /^pa/i) {
       my ($command, $VMs) = split(/\s+/, $reply, 2);
       foreach $vm (split(/,+/, $VMs)) {
-        controlVM("pause $vm", "pause");
+        controlVM("pause", $vm);
       }
    }
 
@@ -111,7 +120,7 @@ action [List, (STArt|STOp|Headless|PAuse|RESume|POweroff) <n>,
    elsif ($reply =~ /^resu/i) {
       my ($command, $VMs) = split(/\s+/, $reply, 2);
       foreach $vm (split(/,+/, $VMs)) {
-        controlVM("resume $vm", "resume");
+        controlVM("resume", $vm);
       }
    }
 
@@ -119,7 +128,7 @@ action [List, (STArt|STOp|Headless|PAuse|RESume|POweroff) <n>,
    elsif ($reply =~ /^po/i) {
       my ($command, $VMs) = split(/\s+/, $reply, 2);
       foreach $vm (split(/,+/, $VMs)) {
-        controlVM("poweroff $vm", "poweroff");
+        controlVM("off", $vm);
       }
    }
 
@@ -136,7 +145,7 @@ action [List, (STArt|STOp|Headless|PAuse|RESume|POweroff) <n>,
         if ($running =~ /$vindex{$in}{UUID}/) {
            # save off if we need to start headless or not
            chomp($headless = `$bin showvminfo $vindex{$in}{UUID} | grep 'Session type:' | grep headless`);
-           controlVM("poweroff $vm", "poweroff");
+           controlVM("off", $vm);
            $startit = 1;
         }
         system("$bin snapshot $vindex{$in}{UUID} restorecurrent\n");
@@ -452,20 +461,38 @@ sub VMState($) {
    return "off"
 }
 
-# control a VM
+# control a VM. Supports the following commands:
+#
+# stop   -> "press the power button" and let ACPI poweroff normally
+# off    -> "poweroff" the machine (pulled the power)
+# pause  -> "pause" the machine
+# resume -> "resume" the machine
+#
 sub controlVM($$) {
-   my ($command, $whichone) = split(/\s+/, $_[0], 2);
-   my $cntlCmd = $_[1];
+   my ($command, $whichone) = @_;
+   if (! $cntlCmd{$command}) {
+     print "Invalid command: $command given to controlVM()\n";
+     return;
+   }
+   my $cntl  = $cntlCmd{$command};
    my $index;
    while (! $whichone) {
       $whichone = promptForVM();
       return if (! $whichone);
    }
    $index = findIndex($whichone);
-   # check $state against $cntlCmd and allow or deny
+   # check $state against $cntl and allow or deny
    my $state = VMState($index);
-   printf "\usend $cntlCmd to VM %d\n", $index;
-   system("$bin controlvm $vindex{$index}{UUID} $cntlCmd\n");
+   if ($command eq $state
+   ||  ($command eq "resume" && $state ne "pause")
+   ||  ($command eq "pause" && $state ne "on")
+   ||  ($command =~ /(off|stop)/ && $state ne "on")
+   ) {
+      print "Unable to issue $cntl at this point\n";
+      return;
+   }
+   printf "\usend $cntl to VM %d\n", $index;
+   system("$bin controlvm $vindex{$index}{UUID} $cntl\n");
    sleep(1);
 }
 
@@ -523,22 +550,22 @@ action [List, STArt, STOp, RESTArt, Headless, PAuse, RESUme, POweroff,
       # stop command
       # we know that the UUID is so we don't need any more information
       elsif ($reply =~ /^sto/i) {
-         controlVM("stop $vm", "acpipowerbutton");
+         controlVM("stop", $vm);
       }
 
       # pause command
       elsif ($reply =~ /^pa/i) {
-         controlVM("pause $vm", "pause");
+         controlVM("pause", $vm);
       }
 
       # resume command
       elsif ($reply =~ /^resu/i) {
-         controlVM("resume $vm", "resume");
+         controlVM("resume", $vm);
       }
 
       # poweroff command
       elsif ($reply =~ /^po/i) {
-         controlVM("stop $vm", "poweroff");
+         controlVM("off", $vm);
       }
 
       # list command
@@ -599,7 +626,7 @@ action [List, STArt, STOp, RESTArt, Headless, PAuse, RESUme, POweroff,
          chomp(my $running = `$bin list runningvms`);
          if ($running =~ /$vindex{$vm}{UUID}/) {
             chomp($headless = `$bin showvminfo $vindex{$vm}{UUID} | grep 'Session type:' | grep headless`);
-            controlVM("poweroff $vm", "poweroff");
+            controlVM("off", $vm);
             $startit = 1;
          }
          system("$bin snapshot $vindex{$vm}{UUID} restorecurrent\n");
@@ -615,7 +642,7 @@ action [List, STArt, STOp, RESTArt, Headless, PAuse, RESUme, POweroff,
       }
 
       elsif ($reply =~ /^resta/i) {
-         controlVM("poweroff $vm", "poweroff");
+         controlVM("off", $vm);
          until (`$bin showvminfo $vindex{$vm}{UUID} | grep State 2>/dev/null` =~ /powered off/) {
             sleep(2);
          }
