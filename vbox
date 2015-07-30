@@ -56,8 +56,9 @@ while ($loop) {
       listVMs();
       exit 0 if ($ARGV[0] && $ARGV[0] =~ /^l/i);
       $msg = "
-action [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>, Revert <n[,n]>,
-        Take <n[,n]> <name>, SNapshot <n>, SSh <n>, DESTROY <n>]:
+action [List, (STArt|STOp|Headless|PAuse|RESume|POweroff) <n>,
+        Take <n[,n]> <name>, REVert <n[,n]>, SNapshot <n>,
+        DESTROY <n>, SSh <n>]:
 (or 'q' to quit): ";
       print $msg;
       chomp($reply = <STDIN>);
@@ -98,8 +99,24 @@ action [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>, Revert <n[,n]>,
       }
    }
 
+   # pause command
+   elsif ($reply =~ /^pa/i) {
+      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      foreach $vm (split(/,+/, $VMs)) {
+        controlVM("pause $vm", "pause");
+      }
+   }
+
+   # resume command
+   elsif ($reply =~ /^resu/i) {
+      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      foreach $vm (split(/,+/, $VMs)) {
+        controlVM("resume $vm", "resume");
+      }
+   }
+
    # poweroff command
-   elsif ($reply =~ /^p/i) {
+   elsif ($reply =~ /^po/i) {
       my ($command, $VMs) = split(/\s+/, $reply, 2);
       foreach $vm (split(/,+/, $VMs)) {
         controlVM("poweroff $vm", "poweroff");
@@ -107,7 +124,7 @@ action [List, STArt <n>, STOp <n>, Headless <n>, Poweroff <n>, Revert <n[,n]>,
    }
 
    # revert command (stop/revert/start if started)
-   elsif ($reply =~ /^r/i) {
+   elsif ($reply =~ /^rev/i) {
       my ($command, $VMs) = split(/\s+/, $reply, 2);
       my $startit;
       my $in;
@@ -421,6 +438,20 @@ sub startVM($$) {
    sleep(3);
 }
 
+# determine what state a VM is currently in
+# returns off,on,pause
+sub VMState($) {
+   my $v = $vindex{$_[0]}{UUID};
+   chomp(my $out = `$bin showvminfo $v --machinereadable |grep '^VMState='`);
+   if ($out =~ /(running|starting|stopping)/) {
+     return "on";
+   }
+   if ($out =~ /paused/i) {
+     return "pause";
+   }
+   return "off"
+}
+
 # control a VM
 sub controlVM($$) {
    my ($command, $whichone) = split(/\s+/, $_[0], 2);
@@ -431,6 +462,8 @@ sub controlVM($$) {
       return if (! $whichone);
    }
    $index = findIndex($whichone);
+   # check $state against $cntlCmd and allow or deny
+   my $state = VMState($index);
    printf "\usend $cntlCmd to VM %d\n", $index;
    system("$bin controlvm $vindex{$index}{UUID} $cntlCmd\n");
    sleep(1);
@@ -460,8 +493,8 @@ sub snapshotVM($$) {
    while (true) {
       listSnaps($vm);
       $msg = "
-action [STArt, STOp, Headless, Poweroff, RESTArt, List, REVert,
-        DELete <n>, RESTOre <n>, SSh [command], Take <name>]
+action [List, STArt, STOp, RESTArt, Headless, PAuse, RESUme, POweroff,
+        Delete, RESTore <n>, SSh [cmd], Take <name>
 (or 'q' to return, 'Q' to exit): ";
       print "$msg";
       chomp($reply = <STDIN>);
@@ -493,8 +526,18 @@ action [STArt, STOp, Headless, Poweroff, RESTArt, List, REVert,
          controlVM("stop $vm", "acpipowerbutton");
       }
 
+      # pause command
+      elsif ($reply =~ /^pa/i) {
+         controlVM("pause $vm", "pause");
+      }
+
+      # resume command
+      elsif ($reply =~ /^resu/i) {
+         controlVM("resume $vm", "resume");
+      }
+
       # poweroff command
-      elsif ($reply =~ /^p/i) {
+      elsif ($reply =~ /^po/i) {
          controlVM("stop $vm", "poweroff");
       }
 
