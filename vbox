@@ -589,20 +589,6 @@ action [List, STArt, STOp, RESTArt, Headless, PAuse, RESUme, POweroff,
          }
       }
 
-      # eject all present dvds
-      elsif ($reply =~ /^eject/i) {
-         # look at all IDE-<port>-<device> and see if more than one are mounted
-         chomp(my @IDES = `$bin showvminfo $vindex{$vm}{UUID} --machinereadable | grep -E 'IDE-[01]-[01]'`);
-         foreach my $IDE (@IDES) {
-            next if ($IDE =~ /(none|emptydrive)/);
-            # figure out port (1st digit) and device (2nd)
-            my ($var, $val) = split('=', $IDE);
-            $var =~ s/"//g;
-            my (undef, $port, $device) = split('-', $var);
-            system("$bin storageattach $vindex{$vm}{UUID} --storagectl IDE --device $device --port $port --type dvddrive --medium emptydrive");
-         }
-      }
-
       # take command
       elsif ($reply =~ /^t/i) {
          my ($command, $name) = split(/\s+/, $reply, 2);
