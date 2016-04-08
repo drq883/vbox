@@ -137,14 +137,14 @@ action [List, (STArt|STOp|Headless|PAuse|RESume|POweroff) <n>,
       my ($command, $VMs) = split(/\s+/, $reply, 2);
       my $startit;
       my $in;
-      my $headless - undef;
+      my $headless = undef;
       chomp(my $running = `$bin list runningvms`);
       foreach $vm (split(/[,\s]+/, $VMs)) {
         $in = findIndex($vm);
         $startit = 0;
         if ($running =~ /$vindex{$in}{UUID}/) {
            # save off if we need to start headless or not
-           chomp($headless = `$bin showvminfo $vindex{$in}{UUID} | grep 'Session type:' | grep headless`);
+           chomp($headless = `$bin showvminfo $vindex{$in}{UUID} | grep -e 'Session name:' -e 'Session type:' | grep headless`);
            controlVM("off", $vm);
            $startit = 1;
         }
@@ -625,7 +625,8 @@ action [List, STArt, STOp, RESTArt, Headless, PAuse, RESUme, POweroff,
          my $startit = 0;
          chomp(my $running = `$bin list runningvms`);
          if ($running =~ /$vindex{$vm}{UUID}/) {
-            chomp($headless = `$bin showvminfo $vindex{$vm}{UUID} | grep 'Session type:' | grep headless`);
+            # save off if we need to start headless or not
+            chomp($headless = `$bin showvminfo $vindex{$vm}{UUID} | grep -e 'Session name:' -e 'Session type:'| grep headless`);
             controlVM("off", $vm);
             $startit = 1;
          }
