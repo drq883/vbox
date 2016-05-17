@@ -215,7 +215,7 @@ sub populateVMs() {
    # reset all hashes
    %vindex = %vuuid = %vname = %vrunning = ();
    foreach $v (@vms) {
-      $v =~ m/"(.+)" {(.+)}/;
+      $v =~ m/"(.+)" \{(.+)\}/;
       $vindex{$mach}{NAME} = $1;
       $vindex{$mach}{UUID} = $2;
       $vuuid{$2}{INDEX}    = $mach;
@@ -225,7 +225,7 @@ sub populateVMs() {
       $mach++;
    }
    foreach $v (@run) {
-      $v =~ m/"(.+)" {(.+)}/;
+      $v =~ m/"(.+)" \{(.+)\}/;
       $vrunning{$2} = 1;
    }
 }
