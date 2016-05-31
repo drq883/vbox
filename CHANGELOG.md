@@ -1,6 +1,18 @@
 I know I'm late creating this but here it goes. I may change this
 occasionally
 
+May 31, 2016
+
+* Added "info" command to both menus
+
+May 22, 2016
+
+* Added menu help command
+
+Apr 8, 2016
+
+* Revert logic needed updating for VirtualBox 5.*
+
 Jul 30, 2015
 
 * Implement the pause and resume commands
