@@ -1,4 +1,4 @@
-#vbox (Mac only)
+#vbox
 
 ##What is vbox?
 
