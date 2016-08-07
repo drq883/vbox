@@ -825,10 +825,10 @@ sub infoVM($) {
     return if (! $whichone);
   }
   $index = findIndex($whichone);
-  print "-- 8< ----------------- VM Info ----------------------------------\n";
+  print "-- 8< ----------------- VM Info ----------------------------------\n" if ($loop);
   print "Index:           $index\n";
   system("$bin showvminfo $vindex{$index}{UUID} | grep -e ^Name -e '^Guest OS' -e '^Memory' -e '^Number of' -e '^IDE' -e '^NIC 1' -e 'Created with' | sed -e 's/(UUID: .*)//'");
-  print "------------------------------------------------------------ >8 --\n";
-  print "Press Enter to continue...";
-  chomp($eob = <STDIN>);
+  print "------------------------------------------------------------ >8 --\n" if ($loop);
+  print "Press Enter to continue..." if ($loop);
+  chomp($eob = <STDIN>) if ($loop);
 }
