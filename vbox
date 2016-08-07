@@ -79,17 +79,17 @@ action [HELP,   DESTROY, Headless, Info,  PAuse, POweroff, RESTArt,
 Supported Actions:
 
   HELP|?             - Show this display
-  DESTROY <n>        - Destroy the selected VM and storage
-  Headless <n[,n]>   - Start the VM in headless mode
-  Info <n[,n]>       - Show all VM info
-  PAuse <n[,n]>      - Pause the VM
-  POweroff <n[,n]>   - poweroff the selected VM
-  RESTArt <n[,n]>    - Poweroff and start the VM
-  RESUme <n[,n]>     - Resume the VM
+  DESTROY <n>        - Destroy the given VM and storage
+  Headless <n[,n]>   - Start the VM(s) in headless mode
+  Info <n[,n]>       - Show all VM(s) info
+  PAuse <n[,n]>      - Pause the VM(s)
+  POweroff <n[,n]>   - Poweroff the given VM(s)
+  RESTArt <n[,n]>    - Poweroff and start the VM(s)
+  RESUme <n[,n]>     - Resume the VM(s)
   REVert <n[,n]>     - Poweroff, restore active snapshot, Start
-  SNapshot|cd <n>    - Change to the snapshot menu for VM
-  STArt <n[,n]>      - Power on the VM
-  STOp <n[,n]>       - Send ACPI signal to VM
+  SNapshot|cd <n>    - Change to the snapshot menu for VM(s)
+  STArt <n[,n]>      - Power on the VM(s)
+  STOp <n[,n]>       - Send ACPI signal to VM(s)
   Take <n[,n]> <str> - Take a snapshot, use <str> to describe it
 
 NOTES:
@@ -98,8 +98,6 @@ When specifying multiple VMs, separate by commas only, no spaces.
 for examples:
   start 1,2,3
   take 1,2,3 My Initial snapshot
-
-* - only works if using bridged NIC and hostname matches VM name
 
 Press Enter to continue...
 HELP
@@ -613,13 +611,13 @@ action [HELP,    Del,    Headless, Info,  PAuse, POweroff, RESTArt,
 Supported Actions:
 
   HELP|?      - Show this display
-  Delete <n>  - Delete the selected snapshot
+  Delete <n>  - Delete the given snapshot
   Headless    - Start the VM in headless mode
   Info        - Show all VM info
   PAuse       - Pause the VM
-  POweroff    - poweroff the selected VM
+  POweroff    - poweroff the given VM
   RESTArt     - Poweroff and start the VM
-  RESTore <n> - Restore the selected snapshot
+  RESTore <n> - Restore the given snapshot
   RESUme      - Resume the VM
   REVert      - Poweroff, restore active snapshot, Start
   STArt       - Power on the VM
@@ -832,10 +830,10 @@ sub infoVM($) {
     return if (! $whichone);
   }
   $index = findIndex($whichone);
-  print "-- 8< ----------------- VM Info ----------------------------------\n";
+  print "-- 8< ----------------- VM Info ----------------------------------\n" if ($loop);
   print "Index:           $index\n";
   system("$bin showvminfo $vindex{$index}{UUID} | grep -e ^Name -e '^Guest OS' -e '^Memory' -e '^Number of' -e '^IDE' -e '^NIC 1' -e 'Created with' | sed -e 's/(UUID: .*)//'");
-  print "------------------------------------------------------------ >8 --\n";
-  print "Press Enter to continue...";
-  chomp($eob = <STDIN>);
+  print "------------------------------------------------------------ >8 --\n" if ($loop);
+  print "Press Enter to continue..." if ($loop);
+  chomp($eob = <STDIN>) if ($loop);
 }
