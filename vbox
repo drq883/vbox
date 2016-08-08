@@ -110,16 +110,16 @@ HELP
       last;
    }
 
-   # list command
+   # list action
    elsif ($reply =~ /^l/i) {
       next;
    }
 
-   # start command
+   # start action
    elsif ($reply =~ /^sta/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       if (! $VMs) {
-        print "ERROR: You must specify a VM with the $command command\n";
+        print "ERROR: You must specify a VM with the $action action\n";
       }
       else {
          foreach $vm (split(/,+/, $VMs)) {
@@ -128,11 +128,11 @@ HELP
       }
    }
 
-   # headless command
+   # headless action
    elsif ($reply =~ /^h/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       if (! $VMs) {
-        print "ERROR: You must specify a VM with the $command command\n";
+        print "ERROR: You must specify a VM with the $action action\n";
       }
       else {
          foreach $vm (split(/,+/, $VMs)) {
@@ -141,11 +141,11 @@ HELP
       }
    }
 
-   # info command
+   # info action
    elsif ($reply =~ /^i/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       if (! $VMs) {
-        print "ERROR: You must specify a VM with the $command command\n";
+        print "ERROR: You must specify a VM with the $action action\n";
       }
       else {
          foreach $vm (split(/,+/, $VMs)) {
@@ -153,11 +153,11 @@ HELP
          }
       }
    }
-   # stop command
+   # stop action
    elsif ($reply =~ /^sto/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       if (! $VMs) {
-        print "ERROR: You must specify a VM with the $command command\n";
+        print "ERROR: You must specify a VM with the $action action\n";
       }
       else {
          foreach $vm (split(/,+/, $VMs)) {
@@ -166,11 +166,11 @@ HELP
       }
    }
 
-   # pause command
+   # pause action
    elsif ($reply =~ /^pa/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       if (! $VMs) {
-        print "ERROR: You must specify a VM with the $command command\n";
+        print "ERROR: You must specify a VM with the $action action\n";
       }
       else {
          foreach $vm (split(/,+/, $VMs)) {
@@ -179,11 +179,11 @@ HELP
       }
    }
 
-   # resume command
+   # resume action
    elsif ($reply =~ /^resu/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       if (! $VMs) {
-        print "ERROR: You must specify a VM with the $command command\n";
+        print "ERROR: You must specify a VM with the $action action\n";
       }
       else {
          foreach $vm (split(/,+/, $VMs)) {
@@ -192,11 +192,11 @@ HELP
       }
    }
 
-   # poweroff command
+   # poweroff action
    elsif ($reply =~ /^po/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       if (! $VMs) {
-        print "ERROR: You must specify a VM with the $command command\n";
+        print "ERROR: You must specify a VM with the $action action\n";
       }
       else {
          foreach $vm (split(/,+/, $VMs)) {
@@ -205,9 +205,9 @@ HELP
       }
    }
 
-   # revert command (stop/revert/start if started)
+   # revert action (stop/revert/start if started)
    elsif ($reply =~ /^rev/i) {
-      my ($command, $VMs) = split(/\s+/, $reply, 2);
+      my ($action, $VMs) = split(/\s+/, $reply, 2);
       my $startit;
       my $in;
       my $headless = undef;
@@ -235,7 +235,7 @@ HELP
 
    # take a snapshot of one or more VMs
    elsif ($reply =~ /^t/i) {
-      my ($command, $VMs, $name) = split(/\s+/, $reply, 3);
+      my ($action, $VMs, $name) = split(/\s+/, $reply, 3);
       my $in;
       chomp(my $running = `$bin list runningvms`);
       foreach $vm (split(/,+/, $VMs)) {
@@ -248,28 +248,28 @@ HELP
       }
    }
 
-   # snapshot command
+   # snapshot action
    elsif ($reply =~ /^(sn|cd)/i) {
       snapshotVM($reply);
    }
 
-   # ssh command
+   # ssh action
    elsif ($reply =~ /^ss/i) {
-      my ($command, $vm, $args) = split(/\s+/, $reply, 3);
+      my ($action, $vm, $args) = split(/\s+/, $reply, 3);
       my $in = findIndex($vm);
       print "-------- 8< ------ output from ssh ---------------------------------------------\n";
       system("ssh $vindex{$in}{NAME} $args");
       print "-------------------------------------------------------------------- >8 --------\n\n";
    }
 
-   # destroy command
+   # destroy action
    elsif ($reply =~ /^destroy/i) {
       destroyVM($reply);
    }
 
-   # unknown command
+   # unknown action
    else {
-      print "Unrecognized command '$reply'\n";
+      print "Unrecognized action '$reply'\n";
    }
 }
 
@@ -507,7 +507,7 @@ sub promptForSnap($) {
 
 # start a VM
 sub startVM($$) {
-   my ($command, $whichone) = split(/\s+/, $_[0], 2);
+   my ($action, $whichone) = split(/\s+/, $_[0], 2);
    my $option = $_[1];
    my $index;
    while (! $whichone) {
@@ -582,7 +582,7 @@ sub controlVM($$) {
 
 # manage a VM (snapshots, maybe other stuff)
 sub snapshotVM($$) {
-   my ($command, $whichone) = split(/\s+/, $_[0], 2);
+   my ($action, $whichone) = split(/\s+/, $_[0], 2);
    my $vm;
    my $action;
    while (! $whichone) {
@@ -643,50 +643,50 @@ HELP
          }
       }
 
-      # start command
+      # start action
       elsif ($reply =~ /^sta/i) {
          startVM("start $vm", "");
       }
 
-      # headless command
+      # headless action
       elsif ($reply =~ /^h/i) {
          startVM("headless $vm", "--type headless");
       }
 
-      # info command
+      # info action
       elsif ($reply =~ /^i/i) {
          infoVM($vm);
       }
 
-      # stop command
+      # stop action
       # we know that the UUID is so we don't need any more information
       elsif ($reply =~ /^sto/i) {
          controlVM("stop", $vm);
       }
 
-      # pause command
+      # pause action
       elsif ($reply =~ /^pa/i) {
          controlVM("pause", $vm);
       }
 
-      # resume command
+      # resume action
       elsif ($reply =~ /^resu/i) {
          controlVM("resume", $vm);
       }
 
-      # poweroff command
+      # poweroff action
       elsif ($reply =~ /^po/i) {
          controlVM("off", $vm);
       }
 
-      # list command
+      # list action
       elsif ($reply =~ /^l/i) {
          next;
       }
 
-      # delete command
+      # delete action
       elsif ($reply =~ /^del/i) {
-         my ($command, $whichone) = split(/\s+/, $reply, 2);
+         my ($action, $whichone) = split(/\s+/, $reply, 2);
          while (! $whichone) {
             $whichone = promptForSnap($vm);
             next W1 if (! $whichone);
@@ -701,9 +701,9 @@ HELP
          }
       }
 
-      # take command
+      # take action
       elsif ($reply =~ /^t/i) {
-         my ($command, $name) = split(/\s+/, $reply, 2);
+         my ($action, $name) = split(/\s+/, $reply, 2);
          if (! $name) {
             $name = "snapshot.$$";
             print "default name of $name used\n";
@@ -712,9 +712,9 @@ HELP
          sleep(1);
       }
 
-      # restore command
+      # restore action
       elsif ($reply =~ /^resto/i) {
-         my ($command, $whichone) = split(/\s+/, $reply, 2);
+         my ($action, $whichone) = split(/\s+/, $reply, 2);
          while (! $whichone) {
             $whichone = promptForSnap($vm);
             next W1 if (! $whichone);
@@ -729,7 +729,7 @@ HELP
          }
       }
 
-      # revert command, no other input required here
+      # revert action, no other input required here
       #
       # poweroff machine if down (and flag as running)
       # revert to current snapshot
@@ -764,21 +764,21 @@ HELP
       }
 
       elsif ($reply =~ /^ss/i) {
-         my ($command, $args) = split(/\s+/, $reply, 2);
+         my ($action, $args) = split(/\s+/, $reply, 2);
          print "-------- 8< ------ output from ssh ---------------------------------------------\n";
          system("ssh $vindex{$vm}{NAME} $args");
          print "-------------------------------------------------------------------- >8 --------\n\n";
       }
 
       else {
-         print "Unrecognized command '$reply'\n";
+         print "Unrecognized action '$reply'\n";
       }
    }
 }
 
 # destroy a VM
 sub destroyVM($$) {
-   my ($command, $whichone) = split(/\s+/, $_[0], 2);
+   my ($action, $whichone) = split(/\s+/, $_[0], 2);
    my $option = $_[1];
    my $index;
    while (! $whichone) {
