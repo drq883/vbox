@@ -594,13 +594,8 @@ W1: while (true) {
       listSnaps($vm);
       $msg = "
 action [HELP,    Del,    Headless, Info,  PAuse, POweroff, RESTArt,
-        RESTOre, RESUme, REVert,   STArt, STOp,  Take]\n";
-      if ($loop) {
-        $msg .= "(or 'q' to return, 'Q' to exit): ";
-      }
-      else {
-        $msg .= "(or 'q' to exit): ";
-      }
+        RESTOre, RESUme, REVert,   STArt, STOp,  Take]
+(or 'q' to return, 'Q' to exit): ";
       print "$msg";
       chomp($reply = <STDIN>);
       print "\n";
