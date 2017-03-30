@@ -375,7 +375,8 @@ sub listSnaps($) {
    (undef, $currentNode) = split('="', $current);
    chop($currentNode);
    my $snap = 1;
-   my $running = (defined $vrunning{$vindex{$index}{UUID}}) ? "(running)" : "";
+   chomp(my $running = `$bin list runningvms`);
+   my $running = ($running =~ /$vindex{$index}{UUID}/) ? "(running)" : "";
    print "VM: $vindex{$index}{NAME} $running\n\n";
    # reset hashes
    %sindex = %suuid = %sname = ();
@@ -600,6 +601,7 @@ action [HELP,    Del,    Headless, Info,  PAuse, POweroff, RESTArt,
       print "$msg";
       chomp($reply = <STDIN>);
       print "\n";
+      next if (! $reply);
 
       # help for Snapshop list
       if ($reply =~ /^(help|\?)/i) {
