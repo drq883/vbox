@@ -71,6 +71,7 @@ action [HELP,   DESTROY, Headless, Info,  PAuse, POweroff, RESTArt,
       print $msg;
       chomp($reply = <STDIN>);
       print "\n";
+      next if (! $reply);
    }
 
    # help for VM list
