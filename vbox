@@ -224,6 +224,7 @@ HELP
         }
         system("$bin snapshot $vindex{$in}{UUID} restorecurrent\n");
         if ($startit) {
+           sleep(3);
            if ($headless) {
              startVM("start $vm", "--type headless");
            }
@@ -598,7 +599,7 @@ W1: while (true) {
       $msg = "
 action [HELP,    Del,    Headless, Info,  PAuse, POweroff, RESTArt,
         RESTOre, RESUme, REVert,   STArt, STOp,  Take]
-(or 'q' to return, 'Q' to exit): ";
+(or 'q' to return, 'Q or qq' to exit): ";
       print "$msg";
       chomp($reply = <STDIN>);
       print "\n";
@@ -634,7 +635,7 @@ HELP
 
       # quit to quit this menu, Quit to quit vbox
       elsif ($reply =~ /^q/i) {
-         if ($reply =~ /^Q/) {
+         if ($reply =~ /^(Q|qq)/) {
             exit 0;
          }
          else {
@@ -744,6 +745,7 @@ HELP
          }
          system("$bin snapshot $vindex{$vm}{UUID} restorecurrent\n");
          if ($startit) {
+           sleep(3);
            if ($headless) {
              startVM("start $vm", "--type headless");
            }
