@@ -61,7 +61,7 @@ action [HELP,   DESTROY, Headless, Info,  PAuse, POweroff, RESTArt,
 (or 'q' to quit):
 ```
 The actions available on this screen are:
-
+* CD <n>             - Change into VM's snapshot screen
 * HELP|?             - Show this display
 * DESTROY <n>        - Destroy the given VM(s) and storage
 * Headless <n[,n]>   - Start the VM(s) in headless mode
